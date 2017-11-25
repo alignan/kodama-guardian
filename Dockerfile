@@ -1,5 +1,9 @@
-# Base Image: %%RESIN_MACHINE_NAME%% supports multiple arch
+# Base Image
 FROM resin/raspberry-pi2-python
+
+RUN apt-get update && apt-get install -yq \
+            python-smbus i2c-tools libraspberrypi-bin && \
+            apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Set our working directory
 WORKDIR /usr/src/app
@@ -20,4 +24,4 @@ COPY . ./
 ENV INITSYSTEM on
 
 # main.py will run when container starts up on the device
-CMD [ "python","src/example-flask.py" ]
+CMD modprobe i2c-dev && python src/bme280.py
