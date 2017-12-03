@@ -6,12 +6,8 @@ from ctypes import c_short
 from ctypes import c_byte
 from ctypes import c_ubyte
 
-#--------------------------------------
-# CONSTANTS
-#--------------------------------------
-# Default device I2C address
+# I2C address
 BME280_DEVICE  = 0x77
-I2C_ADC_DEVICE = 0x50
 
 # I2C bus
 bus = smbus.SMBus(1)
@@ -45,7 +41,6 @@ def getUChar(data,index):
 class BME280:
 
   REG_DATA    = 0xF7
-
 
   # Initialize and load calibration table
   def __init__(self, addr=BME280_DEVICE):
