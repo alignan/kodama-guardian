@@ -25,7 +25,7 @@ from ctypes import c_byte
 from ctypes import c_ubyte
 
 # Default device I2C address
-DEVICE = 0x76
+DEVICE = 0x77
 
 # Rev 2 Pi, Pi 2 & Pi 3 uses bus 1
 # Rev 1 Pi uses bus 0
