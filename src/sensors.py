@@ -1,36 +1,24 @@
 #!/usr/bin/python
 #--------------------------------------
-#    ___  ___  _ ____
-#   / _ \/ _ \(_) __/__  __ __
-#  / , _/ ___/ /\ \/ _ \/ // /
-# /_/|_/_/  /_/___/ .__/\_, /
-#                /_/   /___/
-#
-#           bme280.py
-#  Read data from a digital pressure sensor.
-#
-#  Official datasheet available from :
-#  https://www.bosch-sensortec.com/bst/products/all_products/bme280
-#
-# Author : Matt Hawkins
-# Date   : 25/07/2016
-#
-# http://www.raspberrypi-spy.co.uk/
-#
-#--------------------------------------
 import smbus
 import time
 from ctypes import c_short
 from ctypes import c_byte
 from ctypes import c_ubyte
 
+#--------------------------------------
+# CONSTANTS
+#--------------------------------------
 # Default device I2C address
-DEVICE = 0x77
+BME280_DEVICE  = 0x77
+I2C_ADC_DEVICE = 0x50
 
-# Rev 2 Pi, Pi 2 & Pi 3 uses bus 1
-# Rev 1 Pi uses bus 0
+# I2C bus
 bus = smbus.SMBus(1)
 
+#--------------------------------------
+# AUX FUNCTIONS
+#--------------------------------------
 def getShort(data, index):
   # return two bytes from data as a signed 16-bit value
   return c_short((data[index+1] << 8) + data[index]).value
@@ -51,13 +39,16 @@ def getUChar(data,index):
   result =  data[index] & 0xFF
   return result
 
-def readBME280ID(addr=DEVICE):
+#--------------------------------------
+# BME280 specific functions
+#--------------------------------------
+def readBME280ID(addr=BME280_DEVICE):
   # Chip ID Register Address
   REG_ID     = 0xD0
   (chip_id, chip_version) = bus.read_i2c_block_data(addr, REG_ID, 2)
   return (chip_id, chip_version)
 
-def readBME280All(addr=DEVICE):
+def readBME280All(addr=BME280_DEVICE):
   # Register Addresses
   REG_DATA = 0xF7
   REG_CONTROL = 0xF4
@@ -116,7 +107,7 @@ def readBME280All(addr=DEVICE):
 
   # Wait in ms (Datasheet Appendix B: Measurement time and current calculation)
   wait_time = 1.25 + (2.3 * OVERSAMPLE_TEMP) + ((2.3 * OVERSAMPLE_PRES) + 0.575) + ((2.3 * OVERSAMPLE_HUM)+0.575)
-  time.sleep(wait_time/1000)  # Wait the required time  
+  time.sleep(wait_time / 1000)  
 
   # Read temperature/pressure/humidity
   data = bus.read_i2c_block_data(addr, REG_DATA, 8)
@@ -155,20 +146,47 @@ def readBME280All(addr=DEVICE):
   elif humidity < 0:
     humidity = 0
 
-  return temperature/100.0,pressure/100.0,humidity
+  return temperature / 100.0, pressure / 100.0, humidity
+
+#--------------------------------------
+# I2C-ADC specific functions
+#--------------------------------------
+
+def readADC(addr=I2C_ADC_DEVICE):
+  
+  REG_ADDR_RESULT = 0x00
+  REG_ADDR_ALERT  = 0x01
+  REG_ADDR_CONFIG = 0x02
+  REG_ADDR_LIMITL = 0x03
+  REG_ADDR_LIMITH = 0x04
+  REG_ADDR_HYST   = 0x05
+  REG_ADDR_CONVL  = 0x06
+  REG_ADDR_CONVH  = 0x07
+
+  bus.write_byte_data(addr, REG_ADDR_CONFIG, 0x20)
+
+  data = bus.read_i2c_block_data(addr, REG_ADDR_RESULT, 2)
+  raw_val = (data[0] & 0x0f) << 8 | data[1]
+  return raw_val
+
 
 def main():
 
-  while(True):
-    (chip_id, chip_version) = readBME280ID()
-    print "Chip ID     :", chip_id
-    print "Version     :", chip_version
+  (chip_id, chip_version) = readBME280ID()
+  print "BME280 Chip ID     :", chip_id
+  print "BME280 Version     :", chip_version
 
-    temperature,pressure,humidity = readBME280All()
+  while(True):
+
+    soil = readADC()
+    temperature, pressure, humidity = readBME280All()
 
     print "Temperature : ", temperature, "C"
-    print "Pressure : ", pressure, "hPa"
-    print "Humidity : ", humidity, "%"
+    print "Pressure    : ", pressure, "hPa"
+    print "Humidity    : ", humidity, "%"
+    print "Soil moist  : ", soil, "%"
+
+    time.sleep(1)
 
 if __name__=="__main__":
    main()
