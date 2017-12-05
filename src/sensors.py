@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 #--------------------------------------
 import os
 import sys
@@ -101,10 +102,7 @@ def main():
       soil = soil_hum.read_raw()
       temperature, pressure, humidity = bme280.read_all()
 
-      print "Soil moist  : ", soil, "%"
-      print "Temperature : ", temperature, "C"
-      print "Humidity    : ", humidity, "%"
-      print "Pressure    : ", pressure, "hPa"
+      print "Soil {0}% @ {1}°C {2}%RH {3}hPa".format(soil, temperature, humidity, pressure)
 
       MEAS = []
       MEAS.append(soil)
