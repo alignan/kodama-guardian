@@ -60,33 +60,33 @@ MQTT_CONFIG_MAP = [
 cloud = None
 
 def on_connect(client, userdata, flags, rc):
-    global SUBSCRIPTIONS
+  global SUBSCRIPTIONS
 
-    if rc == 0:
-        print "Connected to the local MQTT broker"
+  if rc == 0:
+    print "Connected to the local MQTT broker"
 
-        if SUBSCRIPTIONS:
-          print "Subscribing to:"
-          for item in SUBSCRIPTIONS:
-            print SUBSCRIPTIONS[item]
-            client.subscribe(SUBSCRIPTIONS[item])
-    else:
-        print "Connection failed with RC: " + str(rc)
-        raise RuntimeError('Connection failed')
+    if SUBSCRIPTIONS:
+      print "Subscribing to:"
+      for item in SUBSCRIPTIONS:
+        print SUBSCRIPTIONS[item]
+        client.subscribe(SUBSCRIPTIONS[item])
+  else:
+    print "Connection failed with RC: " + str(rc)
+    raise RuntimeError('Connection failed')
 
 
 def on_message(client, userdata, msg):
-    pass
+  pass
 
 def on_publish(client, userdata, mid):
-    print "PUB mid: " + str(mid)
+  print "PUB mid: " + str(mid)
 
 def stop_mqtt():
-    global cloud
-    cloud.loop_stop()
-    cloud.disconnect()
+  global cloud
+  cloud.loop_stop()
+  cloud.disconnect()
 
-    sys.exit(0)
+  sys.exit(0)
 
 def main():
 
