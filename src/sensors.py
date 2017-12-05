@@ -62,6 +62,9 @@ def on_connect(client, userdata, flags, rc):
 def on_message(client, userdata, msg):
     pass
 
+def on_publish(client, userdata, mid):
+    print "PUB mid: " + str(mid)
+
 def stop_mqtt():
     global cloud
     cloud.loop_stop()
@@ -74,6 +77,12 @@ def main():
   # make cloud client
   global cloud
   cloud = paho.Client()
+
+  # Bindings
+  cloud.on_publish = on_publish
+  cloud.on_connect = on_connect
+  cloud.on_message = on_message
+
   cloud.tls_set(CLOUD_CERT)
   cloud.username_pw_set(CLOUD_USER, CLOUD_PASS)
 
