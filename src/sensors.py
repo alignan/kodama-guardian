@@ -69,7 +69,7 @@ def on_connect(client, userdata, flags, rc):
             print SUBSCRIPTIONS[item]
             client.subscribe(SUBSCRIPTIONS[item])
     else:
-        print "Connection failed!"
+        print "Connection failed with RC: " + str(rc)
         raise RuntimeError('Connection failed')
 
 
