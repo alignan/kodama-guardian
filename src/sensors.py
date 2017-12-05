@@ -13,8 +13,6 @@ from soil import SoilMoist
 
 import paho.mqtt.client as paho
 
-SLEEP_MS = os.getenv('SLEEP_MS')
-
 script_dir = os.path.dirname(__file__)
 
 CLOUD_HOST = "cloud-mqtt.relayr.io"
@@ -22,6 +20,7 @@ CLOUD_CERT = os.path.join(script_dir, "cacert.pem")
 CLOUD_PORT = 8883
 
 # Values set in resin.io ENV VARS
+SLEEP_MS   = os.getenv('SLEEP_MS', 30000)
 CLOUD_USER = os.getenv('RELAYR_USER')
 CLOUD_PASS = os.getenv('RELAYR_PASS')
 CLOUD_DEV  = os.getenv('RELAYR_DEV')
@@ -133,7 +132,7 @@ def main():
           pass
 
       # Wait a bit
-      time.sleep(SLEEP_MS / 1000)
+      time.sleep(int(SLEEP_MS) / 1000)
 
   except Exception, e:
     print "Failed to connect!: " + str(e)
