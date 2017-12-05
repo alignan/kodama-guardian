@@ -28,6 +28,10 @@ if CLOUD_DEV is None or CLOUD_PASS is None or CLOUD_DEV is None:
   print "No credentials were found"
   raise
 
+if not os.path.isfile(CLOUD_CERT):
+  print "Cert not found at: " + CLOUD_CERT
+  raise
+
 SUBSCRIPTIONS = []
 
 # Device and readings map (ID, name and value)
