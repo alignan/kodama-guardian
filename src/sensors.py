@@ -72,6 +72,7 @@ def stop_mqtt():
 def main():
 
   # make cloud client
+  global cloud
   cloud = paho.Client()
   cloud.tls_set(CLOUD_CERT)
   cloud.username_pw_set(CLOUD_USER, CLOUD_PASS)
