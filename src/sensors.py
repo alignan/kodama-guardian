@@ -24,7 +24,7 @@ CLOUD_USER = os.getenv('RELAYR_USER')
 CLOUD_PASS = os.getenv('RELAYR_PASS')
 CLOUD_DEV  = os.getenv('RELAYR_DEV')
 
-if CLOUD_DEV is None or CLOUD_PASS is None or CLOUD_DEV is None:
+if CLOUD_USER is None or CLOUD_PASS is None or CLOUD_DEV is None:
   print "No credentials were found"
   raise
 
