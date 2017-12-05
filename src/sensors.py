@@ -15,7 +15,7 @@ from soil import SoilMoist
 import paho.mqtt.client as paho
 
 CLOUD_HOST = "cloud-mqtt.relayr.io"
-CLOUD_CERT = os.path.abspath("cacert.pem")
+CLOUD_CERT = "/usr/src/app/src/cacert.pem"
 CLOUD_PORT = 8883
 
 # Values set in resin.io ENV VARS
