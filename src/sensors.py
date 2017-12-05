@@ -14,10 +14,8 @@ from soil import SoilMoist
 
 import paho.mqtt.client as paho
 
-script_dir = os.path.dirname(__file__)
-
 CLOUD_HOST = "cloud-mqtt.relayr.io"
-CLOUD_CERT = os.path.join(script_dir, "cacert.pem")
+CLOUD_CERT = os.path.abspath("cacert.pem")
 CLOUD_PORT = 8883
 
 # Values set in resin.io ENV VARS
@@ -92,13 +90,13 @@ def main():
   global cloud
   cloud = paho.Client()
 
+  cloud.tls_set(CLOUD_CERT)
+  cloud.username_pw_set(CLOUD_USER, CLOUD_PASS)
+
   # Bindings
   cloud.on_publish = on_publish
   cloud.on_connect = on_connect
   cloud.on_message = on_message
-
-  cloud.tls_set(CLOUD_CERT)
-  cloud.username_pw_set(CLOUD_USER, CLOUD_PASS)
 
   gevent.signal(signal.SIGINT,  stop_mqtt)
   gevent.signal(signal.SIGQUIT, stop_mqtt)
