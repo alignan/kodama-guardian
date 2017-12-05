@@ -16,7 +16,7 @@ import paho.mqtt.client as paho
 SLEEP_MS = 1000
 
 CLOUD_HOST = "cloud-mqtt.relayr.io"
-CLOUD_CERT = 'cacert.pem'
+CLOUD_CERT = './cacert.pem'
 CLOUD_PORT = 8883
 
 # Values set in resin.io ENV VARS
@@ -48,11 +48,12 @@ def on_connect(client, userdata, flags, rc):
     global SUBSCRIPTIONS
 
     if rc == 0:
-        logger.info("Connected to the local MQTT broker")
+        print "Connected to the local MQTT broker"
 
         if SUBSCRIPTIONS:
             client.subscribe(SUBSCRIPTIONS)
     else:
+        print "Connection failed!"
         raise RuntimeError('Connection failed')
 
 
@@ -125,12 +126,14 @@ def main():
           cloud.publish(topic, payload = json.dumps([data]), qos=0, retain=False)
 
         except IndexError:
+          print "Out of bound!"
           pass
 
       # Wait a bit
       time.sleep(SLEEP_MS / 1000)
 
   except:
+    print "Failed to connect!"
     stop_mqtt()
     raise
 
