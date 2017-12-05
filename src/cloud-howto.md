@@ -70,6 +70,59 @@ Response:
 }
 ````
 
+## Push a new version to the device model
+
+````bash
+curl -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' -d '{"measurements": [{"name": "temperature", "type": "number", "min": -100, "max": 100},{"name": "humidity", "type": "number", "min": 0, "max": 100},{"name": "pressure", "type": "number", "min": 600, "max": 1300},{"name": "soil_moist", "type": "number", "min": 0, "max": 2500}], "commands":[{"name":"water_on", "parameter":"integer"}, {"name":"managed_mode", "parameter":"integer"}], "alerts":[{"name":"no_water", "severity":5}, {"name":"valve_loose", "severity":7}, {"name":"dry_soil", "severity":3}]}' -X POST "https://cloud.relayr.io/device-models/deviceModelID/versions"
+````
+
+Response:
+````bash
+{
+	"versionNumber": 2,
+	"modelId": "deviceModelID",
+	"measurements": [{
+		"name": "temperature",
+		"type": "number",
+		"min": -100,
+		"max": 100
+	}, {
+		"name": "humidity",
+		"type": "number",
+		"min": 0,
+		"max": 100
+	}, {
+		"name": "pressure",
+		"type": "number",
+		"min": 600,
+		"max": 1300
+	}, {
+		"name": "soil_moist",
+		"type": "number",
+		"min": 0,
+		"max": 2500
+	}],
+	"alerts": [{
+		"name": "no_water",
+		"severity": 5
+	}, {
+		"name": "valve_loose",
+		"severity": 7
+	}, {
+		"name": "dry_soil",
+		"severity": 3
+	}],
+	"commands": [{
+		"name": "water_on",
+		"parameter": "integer"
+	}, {
+		"name": "managed_mode",
+		"parameter": "integer"
+	}],
+	"createdAt": "2017-12-05T21:17:00.806+0000"
+}
+````
+
 ## Create a device
 
 ````bash
@@ -117,5 +170,24 @@ Trying 52.58.184.223...
 	"modelVersion": 1,
 	"updatedAt": "2017-12-03T20:28:18.789+0000",
 	"createdAt": "2017-12-03T20:28:18.789+0000"
+}
+````
+
+## Change version used by device
+
+````bash
+curl -X PATCH -d '{"modelId": "deviceModelID", "modelVersion": 2 }' https://cloud.relayr.io/devices/deviceID -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN"
+````
+
+Response:
+````bash
+{
+	"id": "deviceID",
+	"name": "Kodama",
+	"orgId": "organizationID",
+	"modelId": "deviceModelID",
+	"modelVersion": 2,
+	"createdAt": "2017-12-03T20:28:18.789+0000",
+	"updatedAt": "2017-12-05T21:23:00.566+0000"
 }
 ````

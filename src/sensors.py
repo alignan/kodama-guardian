@@ -44,6 +44,17 @@ MQTT_CLOUD_MAP = [
     (CLOUD_DEV, 'pressure')
 ]
 
+# Supported configuration values
+MQTT_CONFIG_MAP = [
+    # Open the sprinkler
+    (CLOUD_DEV, 'water_on'),
+    # Enable or Disable managed mode
+    (CLOUD_DEV, 'managed_mode')
+]
+
+# List of alerts:
+# "no_water", "valve_loose", "dry_soil"
+
 cloud = None
 
 def on_connect(client, userdata, flags, rc):
@@ -53,7 +64,10 @@ def on_connect(client, userdata, flags, rc):
         print "Connected to the local MQTT broker"
 
         if SUBSCRIPTIONS:
-            client.subscribe(SUBSCRIPTIONS)
+          print "Subscribing to:"
+          for item in SUBSCRIPTIONS:
+            print SUBSCRIPTIONS[item]
+            client.subscribe(SUBSCRIPTIONS[item])
     else:
         print "Connection failed!"
         raise RuntimeError('Connection failed')
@@ -92,7 +106,7 @@ def main():
   gevent.signal(signal.SIGKILL, stop_mqtt)
 
   # populate topics
-  for item in MQTT_CLOUD_MAP:
+  for item in MQTT_CONFIG_MAP:
     SUBSCRIPTIONS.append( ('devices/{}/measurement/{}'.format(item[0], item[1]), 0) )
 
   try:
