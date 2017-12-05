@@ -15,8 +15,10 @@ import paho.mqtt.client as paho
 
 SLEEP_MS = 1000
 
+script_dir = os.path.dirname(__file__)
+
 CLOUD_HOST = "cloud-mqtt.relayr.io"
-CLOUD_CERT = './cacert.pem'
+CLOUD_CERT = os.path.join(script_dir, "cacert.pem")
 CLOUD_PORT = 8883
 
 # Values set in resin.io ENV VARS
