@@ -20,9 +20,13 @@ CLOUD_CERT = 'cacert.pem'
 CLOUD_PORT = 8883
 
 # Values set in resin.io ENV VARS
-CLOUD_USER = os.getenv(RELAYR_USER)
-CLOUD_PASS = os.getenv(RELAYR_PASS)
-CLOUD_DEV  = os.getenv(RELAYR_DEV)
+CLOUD_USER = os.getenv('RELAYR_USER')
+CLOUD_PASS = os.getenv('RELAYR_PASS')
+CLOUD_DEV  = os.getenv('RELAYR_DEV')
+
+if CLOUD_DEV is None or CLOUD_PASS is None or CLOUD_DEV is None:
+  print "No credentials were found"
+  raise
 
 SUBSCRIPTIONS = []
 
