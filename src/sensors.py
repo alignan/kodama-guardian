@@ -13,7 +13,7 @@ from soil import SoilMoist
 
 import paho.mqtt.client as paho
 
-SLEEP_MS = 1000
+SLEEP_MS = os.getenv('SLEEP_MS')
 
 script_dir = os.path.dirname(__file__)
 
