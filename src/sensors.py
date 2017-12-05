@@ -135,8 +135,8 @@ def main():
       # Wait a bit
       time.sleep(SLEEP_MS / 1000)
 
-  except:
-    print "Failed to connect!"
+  except Exception, e:
+    print "Failed to connect!: " + str(e)
     stop_mqtt()
     raise
 
