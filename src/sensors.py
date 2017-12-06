@@ -117,7 +117,7 @@ def main():
     print "BME280 Version     :", chip_version
 
     # A bit of hacky-magik because why not...
-    time.sleep(5000)
+    time.sleep(5)
 
     while(True):
 
