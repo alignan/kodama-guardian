@@ -32,17 +32,13 @@ if not os.path.isfile(CLOUD_CERT):
   print "Cert not found at: " + CLOUD_CERT
   raise
 
-# Device and readings map (ID, name and value)
-MQTT_CLOUD_MAP = [
-    # soil moisture
-    (CLOUD_DEV, 'soil_moist'),
-    # temperature
-    (CLOUD_DEV, 'temperature'),
-    # humidity
-    (CLOUD_DEV, 'humidity'),
-    # atmospheric pressure
-    (CLOUD_DEV, 'pressure')
-]
+# Device measurements
+MQTT_MEASUREMENT_MAP = {
+  'soil_moist'  : None,
+  'temperature' : None,
+  'humidity'    : None,
+  'pressure'    : None
+}
 
 # Supported configuration values
 MQTT_COMMAND_MAP = [
@@ -89,6 +85,7 @@ def main():
 
   # make cloud client
   global cloud
+  global MQTT_MEASUREMENT_MAP
   cloud = paho.Client()
 
   cloud.tls_set(CLOUD_CERT)
@@ -126,30 +123,21 @@ def main():
 
       print "Soil {0}% @ {1}°C {2}%RH {3}hPa".format(soil, temperature, humidity, pressure)
 
-      MEAS = []
-      MEAS.append(soil)
-      MEAS.append(temperature)
-      MEAS.append(humidity)
-      MEAS.append(pressure)
+      # Ugly
+      MQTT_MEASUREMENT_MAP['soil_moist']  = soil
+      MQTT_MEASUREMENT_MAP['temperature'] = temperature
+      MQTT_MEASUREMENT_MAP['humidity']    = humidity
+      MQTT_MEASUREMENT_MAP['pressure']    = pressure
 
-      for index, value in enumerate(MQTT_CLOUD_MAP):
-
-        try:
-
-          topic = 'devices/{}/measurements'.format(MQTT_CLOUD_MAP[index][0])
+      # Create the payload
+      data = "["
+      for key, value in MQTT_MEASUREMENT_MAP.iteritems():
+        if value is not None:
           timestamp = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%m:%S.%f')[0:-3] + 'Z'
-
-          data = {
-            'name': MQTT_CLOUD_MAP[index][1],
-            'value': MEAS[index],
-            'recorded': timestamp
-          }
-
-          cloud.publish(topic, payload = json.dumps([data]), qos=0, retain=False)
-
-        except IndexError:
-          print "Out of bound!"
-          pass
+          data += '{"name":{0}, "value":{1},"recorded":{2}},'.format(key, value, timestamp)
+      data = data[:-1] + "]"
+      topic = 'devices/{}/measurements'.format(RELAYR_DEV)
+      cloud.publish(topic, payload = json.dumps([data]), qos=0, retain=False)
 
       # Wait a bit
       time.sleep(int(SLEEP_MS) / 1000)
