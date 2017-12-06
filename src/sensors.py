@@ -58,8 +58,7 @@ def on_connect(client, userdata, flags, rc):
     print "Connected to the local MQTT broker, now subscribing..."
 
     if MQTT_COMMAND_MAP:
-        # client.subscribe('device/{0}/commands'.format(CLOUD_DEV))
-        pass
+      client.subscribe('device/{0}/commands'.format(CLOUD_DEV))
   else:
     print "Connection failed with RC: " + str(rc)
     raise RuntimeError('Connection failed')
@@ -137,7 +136,7 @@ def main():
           data = { "name":key, "value":value, "recorded":timestamp }
           my_measurements.append(data)
       topic = 'devices/{0}/measurements'.format(CLOUD_DEV)
-      cloud.publish(topic, payload = json.dumps(my_measurements), qos=0, retain=False)
+      cloud.publish(topic, payload = json.dumps(my_measurements), qos=1, retain=False)
 
       # Wait a bit
       time.sleep(int(SLEEP_MS) / 1000)
