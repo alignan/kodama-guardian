@@ -59,7 +59,7 @@ cloud = None
 
 def on_connect(client, userdata, flags, rc):
   if rc == 0:
-    print "Connected to the local MQTT broker"
+    print "Connected to the local MQTT broker, now subscribing..."
 
     if MQTT_COMMAND_MAP:
         client.subscribe('device/{0}/commands'.format(CLOUD_DEV))
@@ -73,6 +73,9 @@ def on_message(client, userdata, msg):
 
 def on_publish(client, userdata, mid):
   print "PUB mid: " + str(mid)
+
+def on_disconnect(client, userdata, rc):
+  print "Disconnect RC: " + str(rc)
 
 def stop_mqtt():
   global cloud
@@ -91,9 +94,10 @@ def main():
   cloud.username_pw_set(CLOUD_USER, CLOUD_PASS)
 
   # Bindings
-  cloud.on_publish = on_publish
-  cloud.on_connect = on_connect
-  cloud.on_message = on_message
+  cloud.on_publish    = on_publish
+  cloud.on_connect    = on_connect
+  cloud.on_message    = on_message
+  cloud.on_disconnect = on_disconnect
 
   gevent.signal(signal.SIGINT,  stop_mqtt)
   gevent.signal(signal.SIGQUIT, stop_mqtt)
