@@ -191,3 +191,19 @@ Response:
 	"updatedAt": "2017-12-05T21:23:00.566+0000"
 }
 ````
+
+## Retrieve MQTT credentials for a device
+
+````bash
+curl -H "Authorization: Bearer $TOKEN" https://cloud.relayr.io/devices/deviceID/mqtt-credentials | jq
+````
+
+Response:
+
+````bash
+{
+  "username": "deviceUserName",
+  "password": "devicePassword"
+}
+
+````
