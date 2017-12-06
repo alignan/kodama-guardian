@@ -129,15 +129,15 @@ def main():
       MQTT_MEASUREMENT_MAP['humidity']    = humidity
       MQTT_MEASUREMENT_MAP['pressure']    = pressure
 
-      # Create the payload
-      data = "["
+      # Create a list of measurements
+      my_measurements = []
       for key, value in MQTT_MEASUREMENT_MAP.iteritems():
         if value is not None:
           timestamp = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%m:%S.%f')[0:-3] + 'Z'
-          data += '{"name":{0}, "value":{1},"recorded":{2}},'.format(key, value, timestamp)
-      data = data[:-1] + "]"
-      topic = 'devices/{}/measurements'.format(RELAYR_DEV)
-      cloud.publish(topic, payload = json.dumps([data]), qos=0, retain=False)
+          data = { "name":key, "value":value, "recorded":timestamp }
+          my_measurements.append(data)
+      topic = 'devices/{0}/measurements'.format(CLOUD_DEV)
+      cloud.publish(topic, payload = json.dumps(my_measurements), qos=0, retain=False)
 
       # Wait a bit
       time.sleep(int(SLEEP_MS) / 1000)
