@@ -212,7 +212,7 @@ Response:
 
 To receive `commands` subscribe to:
 ````bash
-devices/deviceID/commands/water_on'
+devices/deviceID/commands'
 ````
 
 To publish `measurements` use the topic:
