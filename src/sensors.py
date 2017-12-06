@@ -68,8 +68,8 @@ def on_connect(client, userdata, flags, rc):
     if SUBSCRIPTIONS:
       print "Subscribing to:"
       for item in SUBSCRIPTIONS:
-        print SUBSCRIPTIONS[item]
-        client.subscribe(SUBSCRIPTIONS[item])
+        print item
+        client.subscribe(item)
   else:
     print "Connection failed with RC: " + str(rc)
     raise RuntimeError('Connection failed')
