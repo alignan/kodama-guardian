@@ -109,7 +109,7 @@ def main():
 
   # populate topics
   for item in MQTT_CONFIG_MAP:
-    SUBSCRIPTIONS.append( ('devices/{}/measurement/{}'.format(item[0], item[1]), 0) )
+    SUBSCRIPTIONS.append( ('devices/{}/commands/{}'.format(item[0], item[1]), 0) )
 
   try:
     cloud.connect(CLOUD_HOST, CLOUD_PORT)
