@@ -228,3 +228,9 @@ Using this payload:
     'recorded': timestamp
 }
 ````
+
+## Websocket to read data live
+
+````bash
+wscat -H "Authorization: Bearer $TOKEN" --connect 'https://cloud.relayr.io/devices/channel?deviceIds=deviceID&eventType=measurement'
+````
