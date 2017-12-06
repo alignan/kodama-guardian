@@ -207,3 +207,24 @@ Response:
 }
 
 ````
+
+## About commands and measurements
+
+To receive `commands` subscribe to:
+````bash
+devices/deviceID/commands/water_on'
+````
+
+To publish `measurements` use the topic:
+````bash
+devices/deviceID/measurement/temperature'
+````
+
+Using this payload:
+````bash
+{
+    'name': 'temperature',
+    'value': 22.54,
+    'recorded': timestamp
+}
+````
