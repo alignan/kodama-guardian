@@ -32,8 +32,6 @@ if not os.path.isfile(CLOUD_CERT):
   print "Cert not found at: " + CLOUD_CERT
   raise
 
-SUBSCRIPTIONS = []
-
 # Device and readings map (ID, name and value)
 MQTT_CLOUD_MAP = [
     # soil moisture
@@ -47,11 +45,11 @@ MQTT_CLOUD_MAP = [
 ]
 
 # Supported configuration values
-MQTT_CONFIG_MAP = [
+MQTT_COMMAND_MAP = [
     # Open the sprinkler
-    (CLOUD_DEV, 'water_on'),
+    'water_on',
     # Enable or Disable managed mode
-    (CLOUD_DEV, 'managed_mode')
+    'managed_mode'
 ]
 
 # List of alerts:
@@ -60,16 +58,11 @@ MQTT_CONFIG_MAP = [
 cloud = None
 
 def on_connect(client, userdata, flags, rc):
-  global SUBSCRIPTIONS
-
   if rc == 0:
     print "Connected to the local MQTT broker"
 
-    if SUBSCRIPTIONS:
-      print "Subscribing to:"
-      for item in SUBSCRIPTIONS:
-        print item
-        client.subscribe(item)
+    if MQTT_COMMAND_MAP:
+        client.subscribe('device/{0}/commands'.format(CLOUD_DEV))
   else:
     print "Connection failed with RC: " + str(rc)
     raise RuntimeError('Connection failed')
@@ -106,10 +99,6 @@ def main():
   gevent.signal(signal.SIGQUIT, stop_mqtt)
   gevent.signal(signal.SIGTERM, stop_mqtt)
   gevent.signal(signal.SIGKILL, stop_mqtt)
-
-  # populate topics
-  for item in MQTT_CONFIG_MAP:
-    SUBSCRIPTIONS.append('devices/{}/commands'.format(item[0]))
 
   try:
     cloud.connect(CLOUD_HOST, CLOUD_PORT)
