@@ -23,6 +23,7 @@ SLEEP_MS   = os.getenv('SLEEP_MS', 30000)
 CLOUD_USER = os.getenv('RELAYR_USER')
 CLOUD_PASS = os.getenv('RELAYR_PASS')
 CLOUD_DEV  = os.getenv('RELAYR_DEV')
+CLOUD_ID   = os.getenv('RESIN_DEVICE_UUID')
 
 if CLOUD_USER is None or CLOUD_PASS is None or CLOUD_DEV is None:
   print "No credentials were found"
@@ -83,7 +84,7 @@ def main():
   # make cloud client
   global cloud
   global MQTT_MEASUREMENT_MAP
-  cloud = paho.Client()
+  cloud = paho.Client(client_id=CLOUD_ID, clean_session=False)
 
   cloud.tls_set(CLOUD_CERT)
   cloud.username_pw_set(CLOUD_USER, CLOUD_PASS)
