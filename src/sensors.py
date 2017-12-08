@@ -119,6 +119,7 @@ def measurements_send():
       data = sensor.pub_json()
       my_measurements.append(data)
   topic = 'devices/{0}/measurements'.format(CLOUD_DEV)
+  print json.dumps(my_measurements, indent=4, sort_keys=True)
   cloud.publish(topic, payload=json.dumps(my_measurements), qos=1, retain=False)
 
   # Schedule this own function again
@@ -126,7 +127,7 @@ def measurements_send():
 
 def main():
   global cloud
-  global MQTT_ALERTS_MAP
+  global MQTT_ALERTS_MAP, MQTT_MEASUREMENT_MAP
   cloud = paho.Client(client_id=CLOUD_ID, clean_session=False)
 
   cloud.tls_set(CLOUD_CERT)
