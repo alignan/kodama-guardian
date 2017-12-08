@@ -102,6 +102,9 @@ def on_publish(client, userdata, mid):
 def on_disconnect(client, userdata, rc):
   print "Disconnect RC: " + str(rc)
 
+def on_log(client, userdata, level, buf):
+    print "log: ", buf
+
 def stop_mqtt():
   global cloud
   cloud.loop_stop()
@@ -116,7 +119,7 @@ def measurements_send():
       data = sensor.pub_json()
       my_measurements.append(data)
   topic = 'devices/{0}/measurements'.format(CLOUD_DEV)
-  cloud.publish(topic, payload = json.dumps(my_measurements), qos=1, retain=False)
+  cloud.publish(topic, payload=json.dumps(my_measurements), qos=1, retain=False)
 
   # Schedule this own function again
   threading.Timer(int(PERIOD_MEAS) / 1000, measurements_send).start()
@@ -130,6 +133,7 @@ def main():
   cloud.username_pw_set(CLOUD_USER, CLOUD_PASS)
 
   # Bindings
+  cloud.on_log        = on_log
   cloud.on_publish    = on_publish
   cloud.on_connect    = on_connect
   cloud.on_message    = on_message
