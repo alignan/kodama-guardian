@@ -7,8 +7,9 @@ import json
 import gevent
 import signal
 import time
-import datetime
+import threading
 
+from measurement import Sensor
 from bme280 import BME280
 from soil import SoilMoist
 
@@ -19,11 +20,12 @@ CLOUD_CERT = "/usr/src/app/src/cacert.pem"
 CLOUD_PORT = 8883
 
 # Values set in resin.io ENV VARS
-SLEEP_MS   = os.getenv('SLEEP_MS', 30000)
-CLOUD_USER = os.getenv('RELAYR_USER')
-CLOUD_PASS = os.getenv('RELAYR_PASS')
-CLOUD_DEV  = os.getenv('RELAYR_DEV')
-CLOUD_ID   = os.getenv('RESIN_DEVICE_UUID')
+PERIOD_MEAS   = os.getenv('PER_MEAS', 30000)
+PERIOD_SLEEP  = os.getenv('PER_SLEEP', 1000)
+CLOUD_USER    = os.getenv('RELAYR_USER')
+CLOUD_PASS    = os.getenv('RELAYR_PASS')
+CLOUD_DEV     = os.getenv('RELAYR_DEV')
+CLOUD_ID      = os.getenv('RESIN_DEVICE_UUID')
 
 if CLOUD_USER is None or CLOUD_PASS is None or CLOUD_DEV is None:
   print "No credentials were found"
@@ -33,12 +35,17 @@ if not os.path.isfile(CLOUD_CERT):
   print "Cert not found at: " + CLOUD_CERT
   raise
 
-# Device measurements
+# Create the measurements
+soil_moist  = Sensor('soil_moist', unit="V", minimum=0, maximum=2500, low_thr=800, hi_thr=2000)
+temperature = Sensor('temperature', unit="°C", minimum=-10.0, maximum=80.0, low_thr=0.0, hi_thr=40.0)
+humidity    = Sensor('humidity', unit="%RH", minimum=0.0, maximum=100.0, low_thr=10.0, hi_thr=100.0)
+pressure    = Sensor('pressure', unit="hPa", minimum=800.0, maximum=1300.0, low_thr=800.0, hi_thr=1300.0)
+
 MQTT_MEASUREMENT_MAP = {
-  'soil_moist'  : None,
-  'temperature' : None,
-  'humidity'    : None,
-  'pressure'    : None
+  'soil' : soil_moist,
+  'temp' : temperature,
+  'humd' : humidity,
+  'atmp' : pressure
 }
 
 # Supported alerts
@@ -102,11 +109,21 @@ def stop_mqtt():
 
   sys.exit(0)
 
-def main():
+def measurements_send():
+  my_measurements = []
+  for key, sensor in MQTT_MEASUREMENT_MAP.iteritems():
+    if sensor.value is not None:
+      data = sensor.pub_json()
+      my_measurements.append(data)
+  topic = 'devices/{0}/measurements'.format(CLOUD_DEV)
+  cloud.publish(topic, payload = json.dumps(my_measurements), qos=1, retain=False)
 
-  # make cloud client
+  # Schedule this own function again
+  threading.Timer(int(PERIOD_MEAS) / 1000, measurements_send).start()
+
+def main():
   global cloud
-  global MQTT_MEASUREMENT_MAP
+  global MQTT_ALERTS_MAP
   cloud = paho.Client(client_id=CLOUD_ID, clean_session=False)
 
   cloud.tls_set(CLOUD_CERT)
@@ -139,34 +156,28 @@ def main():
       print "Unexpected BME280 chip ID, disabling..."
       set_alert('sensor_failure')
 
-    # A bit of hacky-magik because why not...
-    time.sleep(5)
+    # Run the scheduled routines
+    measurements_send()
 
+    # Run the main loop and check for alarms to be published
     while(True):
 
       soil = soil_hum.read_raw()
-      temperature, pressure, humidity = bme280.read_all()
+      temp, humd, atmp = bme280.read_all()
+      MQTT_MEASUREMENT_MAP['temp'].is_valid(temp)
+      MQTT_MEASUREMENT_MAP['humd'].is_valid(humd)
+      MQTT_MEASUREMENT_MAP['atmp'].is_valid(atmp)
+      MQTT_MEASUREMENT_MAP['soil'].is_valid(soil)
 
-      print "Soil {0}% @ {1}°C {2}%RH {3}hPa".format(soil, temperature, humidity, pressure)
+      print "Soil {0}% @ {1}°C {2}%RH {3}hPa".format(soil, temp, humd, atmp)
 
-      # Ugly
-      MQTT_MEASUREMENT_MAP['soil_moist']  = soil
-      MQTT_MEASUREMENT_MAP['temperature'] = temperature
-      MQTT_MEASUREMENT_MAP['humidity']    = humidity
-      MQTT_MEASUREMENT_MAP['pressure']    = pressure
-
-      # Create a list of measurements
-      my_measurements = []
-      for key, value in MQTT_MEASUREMENT_MAP.iteritems():
-        if value is not None:
-          timestamp = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%m:%S.%f')[0:-3] + 'Z'
-          data = { "name":key, "value":value, "recorded":timestamp }
-          my_measurements.append(data)
-      topic = 'devices/{0}/measurements'.format(CLOUD_DEV)
-      cloud.publish(topic, payload = json.dumps(my_measurements), qos=1, retain=False)
+      for key, sensor in MQTT_MEASUREMENT_MAP.iteritems():
+        alarm = sensor.is_alarm()
+        if alarm is not None:
+          print "!!!! {0} @ {1} : {2}{3}".format(alarm, sensor.name, sensor.value, sensor.unit)
 
       # Wait a bit
-      time.sleep(int(SLEEP_MS) / 1000)
+      time.sleep(int(PERIOD_SLEEP) / 1000)
 
   except Exception, e:
     print "Failed to connect!: " + str(e)
