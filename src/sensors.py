@@ -41,27 +41,50 @@ MQTT_MEASUREMENT_MAP = {
   'pressure'    : None
 }
 
-# Supported configuration values
-MQTT_COMMAND_MAP = [
-    # Open the sprinkler
-    'water_on',
-    # Enable or Disable managed mode
-    'managed_mode'
-]
+# Supported alerts
+MQTT_ALERTS_MAP = {
+  # Alert state has changed
+  'alert_change' : False,
+  'alerts' :
+  {
+    # Sensor failure
+    'sensor_failure' : 'clear',
+    # No water in the tank
+    'no_water'       : 'clear',
+    # Flood likely!
+    'valve_loose'    : 'clear',
+    # Soil dry below recommended threshold
+    'dry_soil'       : 'clear'
+  }
+}
 
-# List of alerts:
-# "no_water", "valve_loose", "dry_soil"
+# Supported configuration values
+MQTT_COMMAND_MAP = {
+  # Open the sprinkler
+  'water_on'     : None,
+  # Enable or Disable managed mode
+  'managed_mode' : None
+}
 
 cloud = None
 
+def set_alert(key_val):
+  global MQTT_ALERTS_MAP
+  MQTT_ALERTS_MAP['alert_change'] = True
+  MQTT_ALERTS_MAP['alerts'][key_val] = 'set'
+
+def clear_alert(key_val):
+  global MQTT_ALERTS_MAP
+  MQTT_ALERTS_MAP['alert_change'] = True
+  MQTT_ALERTS_MAP['alerts'][key_val] = 'clear'
+
 def on_connect(client, userdata, flags, rc):
-  if rc == 0 and MQTT_COMMAND_MAP:
+  if rc == 0:
     print "Connected to the local MQTT broker, now subscribing..."
     client.subscribe('devices/{0}/commands'.format(CLOUD_DEV), qos=1)
   else:
     print "Connection failed with RC: " + str(rc)
     raise RuntimeError('Connection failed')
-
 
 def on_message(client, userdata, msg):
   pass
@@ -110,6 +133,11 @@ def main():
 
     print "BME280 Chip ID     :", chip_id
     print "BME280 Version     :", chip_version
+
+    # Hard-coded on purpose
+    if chip_id != 96:
+      print "Unexpected BME280 chip ID, disabling..."
+      set_alert('sensor_failure')
 
     # A bit of hacky-magik because why not...
     time.sleep(5)
