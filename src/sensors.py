@@ -57,7 +57,7 @@ cloud = None
 def on_connect(client, userdata, flags, rc):
   if rc == 0 and MQTT_COMMAND_MAP:
     print "Connected to the local MQTT broker, now subscribing..."
-    client.subscribe('device/{0}/commands'.format(CLOUD_DEV))
+    client.subscribe('devices/{0}/commands'.format(CLOUD_DEV))
   else:
     print "Connection failed with RC: " + str(rc)
     raise RuntimeError('Connection failed')
