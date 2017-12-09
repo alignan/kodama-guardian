@@ -25,15 +25,16 @@ class Sensor:
     return { "name":self.name, "value":self.value, "recorded":timestamp }
 
   def is_valid(self, new_val):
-  	if new_val >= self.min and new_val <= self.max:
-  	  self.value = new_val
-  	self.value = None
+    if new_val >= self.min and new_val <= self.max:
+      self.value = new_val
+    else:
+      self.value = None
 
   def is_alarm(self):
-  	if self.value is None:
-  	  return None
-  	if self.low_thr != self.min and self.low_thr > self.min and self.value < self.low_thr:
-  	  return "low_alarm"
-  	if self.hi_thr != self.max and self.hi_thr < self.max and self.value > self.hi_thr:
-  	  return "high_alarm"
-  	return None
+    if self.value is None:
+      return None
+    if self.low_thr != self.min and self.low_thr > self.min and self.value < self.low_thr:
+      return "low_alarm"
+    if self.hi_thr != self.max and self.hi_thr < self.max and self.value > self.hi_thr:
+      return "high_alarm"
+    return None
