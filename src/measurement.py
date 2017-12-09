@@ -3,7 +3,7 @@
 import json
 import datetime
 #--------------------------------------
-# BME280 class
+# Sensor class
 #--------------------------------------
 class Sensor:
 
