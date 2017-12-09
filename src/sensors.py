@@ -168,7 +168,7 @@ def main():
     while(True):
 
       soil = soil_hum.read_raw()
-      temp, humd, atmp = bme280.read_all()
+      temp, atmp, humd = bme280.read_all()
       MQTT_MEASUREMENT_MAP['temp'].is_valid(temp)
       MQTT_MEASUREMENT_MAP['humd'].is_valid(humd)
       MQTT_MEASUREMENT_MAP['atmp'].is_valid(atmp)
