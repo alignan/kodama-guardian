@@ -119,7 +119,7 @@ def measurements_send():
       data = sensor.pub_json()
       my_measurements.append(data)
   topic = 'devices/{0}/measurements'.format(CLOUD_DEV)
-  print json.dumps(my_measurements, indent=4, sort_keys=True)
+  # print json.dumps(my_measurements, indent=4, sort_keys=True)
   cloud.publish(topic, payload=json.dumps(my_measurements), qos=1, retain=False)
 
   # Schedule this own function again
