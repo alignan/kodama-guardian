@@ -35,6 +35,12 @@ if not os.path.isfile(CLOUD_CERT):
   print "Cert not found at: " + CLOUD_CERT
   raise
 
+print "----------------------------------------------------"
+print "Kodama guardian - saving a plant one day at the time"
+print "UUID: " + CLOUD_ID
+print "sampling at {0}s, publish at {1}s".format(str(PERIOD_SLEEP/1000), str(PERIOD_MEAS)/1000)
+print "----------------------------------------------------"
+
 # Create the measurements
 soil_moist  = Sensor('soil_moist', unit="V", minimum=0, maximum=2500, low_thr=800, hi_thr=2000)
 temperature = Sensor('temperature', unit="°C", minimum=-10.0, maximum=80.0, low_thr=0.0, hi_thr=40.0)
