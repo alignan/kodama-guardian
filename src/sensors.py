@@ -100,7 +100,7 @@ def on_connect(client, userdata, flags, rc):
     raise RuntimeError('Connection failed')
 
 def on_message(client, userdata, msg):
-  pass
+  print json.dumps(msg.payload, indent=4, sort_keys=True)
 
 def on_publish(client, userdata, mid):
   print "PUB mid: " + str(mid)
@@ -186,6 +186,7 @@ def main():
         alarm = sensor.is_alarm()
         if alarm is not None:
           print "!!!! {0} @ {1} : {2}{3}".format(alarm, sensor.name, sensor.value, sensor.unit)
+
 
       # Wait a bit
       time.sleep(int(PERIOD_SLEEP) / 1000)
