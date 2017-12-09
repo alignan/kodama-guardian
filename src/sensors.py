@@ -20,8 +20,8 @@ CLOUD_CERT = "/usr/src/app/src/cacert.pem"
 CLOUD_PORT = 8883
 
 # Values set in resin.io ENV VARS
-PERIOD_MEAS   = os.getenv('PER_MEAS', 30000)
-PERIOD_SLEEP  = os.getenv('PER_SLEEP', 1000)
+PERIOD_MEAS   = int(os.getenv('PER_MEAS', 30000))
+PERIOD_SLEEP  = int(os.getenv('PER_SLEEP', 1000))
 CLOUD_USER    = os.getenv('RELAYR_USER')
 CLOUD_PASS    = os.getenv('RELAYR_PASS')
 CLOUD_DEV     = os.getenv('RELAYR_DEV')
@@ -38,7 +38,7 @@ if not os.path.isfile(CLOUD_CERT):
 print "----------------------------------------------------"
 print "Kodama guardian - saving a plant one day at the time"
 print "UUID: " + CLOUD_ID
-print "sampling at {0}s, publish at {1}s".format(str(PERIOD_SLEEP/1000), str(PERIOD_MEAS)/1000)
+print "sampling at {0}s, publish at {1}s".format(str(PERIOD_SLEEP/1000), str(PERIOD_MEAS/1000))
 print "----------------------------------------------------"
 
 # Create the measurements
@@ -129,7 +129,7 @@ def measurements_send():
   cloud.publish(topic, payload=json.dumps(my_measurements), qos=1, retain=False)
 
   # Schedule this own function again
-  threading.Timer(int(PERIOD_MEAS) / 1000, measurements_send).start()
+  threading.Timer(PERIOD_MEAS / 1000, measurements_send).start()
 
 def main():
   global cloud
@@ -189,7 +189,7 @@ def main():
 
 
       # Wait a bit
-      time.sleep(int(PERIOD_SLEEP) / 1000)
+      time.sleep(PERIOD_SLEEP / 1000)
 
   except Exception, e:
     print "Failed to connect!: " + str(e)
