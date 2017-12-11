@@ -124,8 +124,6 @@ def on_message(client, userdata, msg):
 
 def on_publish(client, userdata, mid):
   global MQTT_ALERTS_MAP
-  print "PUB mid: " + str(mid)
-
   if MQTT_ALERTS_MAP['alerts_mid'] == mid:
     print "Alert {0} published".format(str(mid))
   elif MQTT_MEASUREMENT_MAP['measurement_mid'] == mid:
