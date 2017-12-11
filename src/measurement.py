@@ -18,12 +18,12 @@ class Sensor:
     self.low_thr       = low_thr
     self.hi_thr        = hi_thr
 
-    self.alarms = {}
+    self.alerts = {}
 
     if low_msg is not None:
-      self.alarms[low_msg] = 'clear'
+      self.alerts[low_msg] = 'clear'
     if hi_msg is not None:
-      self.alarms[hi_msg]  = 'clear'
+      self.alerts[hi_msg]  = 'clear'
 
     self.low_thr_msg   = low_msg
     self.hi_thr_msg    = hi_msg
@@ -41,21 +41,21 @@ class Sensor:
     else:
       self.value = None
 
-  def is_alarm(self):
-    self.alarms[low_thr_msg] = 'clear'
-    self.alarms[hi_thr_msg]  = 'clear'
+  def is_alert(self):
+    self.alerts[low_thr_msg] = 'clear'
+    self.alerts[hi_thr_msg]  = 'clear'
 
     if self.value is None:
       return None
 
     if self.low_thr != self.min and self.low_thr > self.min and \
       self.value < self.low_thr and self.low_thr_msg is not None:
-      self.alarms[low_thr_msg] = 'set'
+      self.alerts[low_thr_msg] = 'set'
       return self.low_thr_msg
 
     if self.hi_thr != self.max and self.hi_thr < self.max and \
       self.value > self.hi_thr and self.hi_thr_msg is not None:
-      self.alarms[hi_thr_msg] = 'set'
+      self.alerts[hi_thr_msg] = 'set'
       return self.hi_thr_msg
 
     return None

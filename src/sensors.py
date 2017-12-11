@@ -99,12 +99,13 @@ MQTT_COMMAND_MAP = {
   'managed_mode' : None
 }
 
-print "Alarms: ",
+print "Alerts: ",
 for key, value in MQTT_ALERTS_MAP['alerts'].iteritems():
   print key + " ",
-print "Measurements: ",
+print "\nMeasurements: ",
 for key, value in MQTT_MEASUREMENT_MAP['measurements'].iteritems():
-  print key + " ",
+  print value.name + " ",
+print "----------------------------------------------------"
 
 def on_connect(client, userdata, flags, rc):
   if rc == 0:
@@ -157,21 +158,21 @@ def measurements_send():
   threading.Timer(PERIOD_MEAS / 1000, measurements_send).start()
 
 # replace by an iterator and only send alerts when there is a change in its status
-def check_alarms():
+def check_alerts():
   global MQTT_ALERTS_MAP
   alerts_list = []
   # check first specific sensor alarms
   for key, sensor in MQTT_MEASUREMENT_MAP['measurements'].iteritems():
-    an_alert = sensor.is_alarm()
+    an_alert = sensor.is_alert()
     # if the recorded alert is different than the new alert, publish
     if an_alert is not None and MQTT_ALERTS_MAP['alerts'][an_alert] != sensor.alerts[an_alert]:
       MQTT_ALERTS_MAP['alerts'][an_alert] = sensor.alerts[an_alert]
       print "!!!! {0} @ {1} : {2}{3}".format(an_alert, sensor.name, sensor.value, sensor.unit)
       alerts_list.append('{"name":{0}, "state":{1}}'.format(an_alert, MQTT_ALERTS_MAP['alerts'][an_alert]))
   # check other alarms
-  for key, state in my_alerts['alarms'].iteritems():
-    if state != MQTT_ALERTS_MAP['alarms'][key]:
-      MQTT_ALERTS_MAP['alarms'][key] = state
+  for key, state in my_alerts['alerts'].iteritems():
+    if state != MQTT_ALERTS_MAP['alerts'][key]:
+      MQTT_ALERTS_MAP['alerts'][key] = state
       print "!!!! {0} : {1}".format(key, state)
       alerts_list.append('{"name":{0}, "state":{1}}'.format(key, state))
 
@@ -215,7 +216,7 @@ def main():
     # Hard-coded on purpose
     if chip_id != 96:
       print "Unexpected BME280 chip ID, disabling..."
-      my_alerts['alarms']['sensor_failure'] = 'set'
+      my_alerts['alerts']['sensor_failure'] = 'set'
 
     # Run the scheduled routines
     measurements_send()
@@ -233,7 +234,7 @@ def main():
       print "Soil {0}% @ {1}°C {2}%RH {3}hPa".format(soil, temp, humd, atmp)
 
       # This will check for alarms to be sent to the cloud
-      check_alarms()
+      check_alerts()
 
       # Wait a bit
       time.sleep(PERIOD_SLEEP / 1000)
