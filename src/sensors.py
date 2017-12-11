@@ -67,7 +67,11 @@ MQTT_ALERTS_MAP = {
     # Flood likely!
     'valve_loose'    : 'clear',
     # Soil dry below recommended threshold
-    'dry_soil'       : 'clear'
+    'dry_soil'       : 'clear',
+    # Temperature over threshold
+    'too_hot'        : 'clear',
+    # Temperature below threshold
+    'too_cold'       : 'clear'
   }
 }
 
