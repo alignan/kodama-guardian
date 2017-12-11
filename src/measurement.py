@@ -8,14 +8,25 @@ import datetime
 class Sensor:
 
   # Initialize and load calibration table
-  def __init__(self, name, minimum, maximum, low_thr, hi_thr, value=None, unit=""):
-  	self.name    = name
-  	self.value   = value
-  	self.unit    = unit
-  	self.min     = minimum
-  	self.max     = maximum
-  	self.low_thr = low_thr
-  	self.hi_thr  = hi_thr
+  def __init__(self, name, minimum, maximum, low_thr=None, hi_thr=None, low_msg=None,
+               hi_msg=None, value=None, unit=""):
+    self.name          = name
+    self.value         = value
+    self.unit          = unit
+    self.min           = minimum
+    self.max           = maximum
+    self.low_thr       = low_thr
+    self.hi_thr        = hi_thr
+
+    self.alarms = {}
+
+    if low_msg is not None:
+      self.alarms[low_msg] = 'clear'
+    if hi_msg is not None:
+      self.alarms[hi_msg]  = 'clear'
+
+    self.low_thr_msg   = low_msg
+    self.hi_thr_msg    = hi_msg
 
   def __iter__(self):
     return self.__dict__.iteritems()
@@ -31,10 +42,20 @@ class Sensor:
       self.value = None
 
   def is_alarm(self):
+    self.alarms[low_thr_msg] = 'clear'
+    self.alarms[hi_thr_msg]  = 'clear'
+
     if self.value is None:
       return None
-    if self.low_thr != self.min and self.low_thr > self.min and self.value < self.low_thr:
-      return "low_alarm"
-    if self.hi_thr != self.max and self.hi_thr < self.max and self.value > self.hi_thr:
-      return "high_alarm"
+
+    if self.low_thr != self.min and self.low_thr > self.min and \
+      self.value < self.low_thr and self.low_thr_msg is not None:
+      self.alarms[low_thr_msg] = 'set'
+      return self.low_thr_msg
+
+    if self.hi_thr != self.max and self.hi_thr < self.max and \
+      self.value > self.hi_thr and self.hi_thr_msg is not None:
+      self.alarms[hi_thr_msg] = 'set'
+      return self.hi_thr_msg
+
     return None

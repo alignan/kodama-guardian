@@ -9,6 +9,8 @@ import signal
 import time
 import threading
 
+from copy import deepcopy
+
 from measurement import Sensor
 from bme280 import BME280
 from soil import SoilMoist
@@ -41,23 +43,30 @@ print "UUID: " + CLOUD_ID
 print "sampling at {0}s, publish at {1}s".format(str(PERIOD_SLEEP/1000), str(PERIOD_MEAS/1000))
 print "----------------------------------------------------"
 
+cloud = None
+
 # Create the measurements
-soil_moist  = Sensor('soil_moist', unit="V", minimum=0, maximum=2500, low_thr=800, hi_thr=2000)
-temperature = Sensor('temperature', unit="°C", minimum=-10.0, maximum=80.0, low_thr=0.0, hi_thr=40.0)
-humidity    = Sensor('humidity', unit="%RH", minimum=0.0, maximum=100.0, low_thr=10.0, hi_thr=100.0)
-pressure    = Sensor('pressure', unit="hPa", minimum=800.0, maximum=1300.0, low_thr=800.0, hi_thr=1300.0)
+soil_moist  = Sensor('soil_moist', unit="V", minimum=0, maximum=2500,
+                     low_thr=800, hi_thr=2000, low_msg='dry_soil')
+temperature = Sensor('temperature', unit="°C", minimum=-10.0, maximum=80.0,
+                     low_thr=0.0, hi_thr=40.0, low_msg='too_cold', hi_msg='too_hot')
+humidity    = Sensor('humidity', unit="%RH", minimum=0.0, maximum=100.0,
+                     low_thr=10.0, hi_thr=100.0)
+pressure    = Sensor('pressure', unit="hPa", minimum=800.0, maximum=1300.0,
+                     low_thr=800.0, hi_thr=1300.0)
 
 MQTT_MEASUREMENT_MAP = {
-  'soil' : soil_moist,
-  'temp' : temperature,
-  'humd' : humidity,
-  'atmp' : pressure
+  'measurement_mid' : 0,
+  'measurements' : {
+    'soil' : soil_moist,
+    'temp' : temperature,
+    'humd' : humidity,
+    'atmp' : pressure
+  }
 }
 
-# Supported alerts
-MQTT_ALERTS_MAP = {
-  # Alert state has changed
-  'alert_change' : False,
+# This is the dictionary to keep ongoing alerts (other than sensor's)
+my_alerts = {
   'alerts' :
   {
     # Sensor failure
@@ -66,14 +75,21 @@ MQTT_ALERTS_MAP = {
     'no_water'       : 'clear',
     # Flood likely!
     'valve_loose'    : 'clear',
-    # Soil dry below recommended threshold
-    'dry_soil'       : 'clear',
-    # Temperature over threshold
-    'too_hot'        : 'clear',
-    # Temperature below threshold
-    'too_cold'       : 'clear'
   }
 }
+
+# Copy the alerts dictionary into this map to keep track of alerts state changes
+MQTT_ALERTS_MAP = {
+  'alerts_mid' : 0,
+}
+MQTT_ALERTS_MAP.update(deepcopy(my_alerts))
+
+# Add sensor specific alerts
+for key, value in MQTT_MEASUREMENT_MAP['measurements'].iteritems():
+  if value.low_thr_msg is not None:
+    MQTT_ALERTS_MAP['alerts'][value.low_thr_msg] = value.alarms[value.low_thr_msg]
+  if value.hi_thr_msg is not None:
+    MQTT_ALERTS_MAP['alerts'][value.hi_thr_msg]  = value.alarms[value.hi_thr_msg]
 
 # Supported configuration values
 MQTT_COMMAND_MAP = {
@@ -83,17 +99,12 @@ MQTT_COMMAND_MAP = {
   'managed_mode' : None
 }
 
-cloud = None
-
-def set_alert(key_val):
-  global MQTT_ALERTS_MAP
-  MQTT_ALERTS_MAP['alert_change'] = True
-  MQTT_ALERTS_MAP['alerts'][key_val] = 'set'
-
-def clear_alert(key_val):
-  global MQTT_ALERTS_MAP
-  MQTT_ALERTS_MAP['alert_change'] = True
-  MQTT_ALERTS_MAP['alerts'][key_val] = 'clear'
+print "Alarms: ",
+for key, value in MQTT_ALERTS_MAP['alerts'].iteritems():
+  print key + " ",
+print "Measurements: ",
+for key, value in MQTT_MEASUREMENT_MAP['measurements'].iteritems():
+  print key + " ",
 
 def on_connect(client, userdata, flags, rc):
   if rc == 0:
@@ -107,7 +118,15 @@ def on_message(client, userdata, msg):
   print json.dumps(msg.payload, indent=4, sort_keys=True)
 
 def on_publish(client, userdata, mid):
+  global MQTT_ALERTS_MAP
   print "PUB mid: " + str(mid)
+
+  if MQTT_ALERTS_MAP['alerts_mid'] == mid:
+    print "Alert {0} published".format(str(mid))
+  elif MQTT_MEASUREMENT_MAP['measurement_mid'] == mid:
+    print "Measurement {0} published".format(str(mid))
+  else:
+    print "Unexpected {0} published".format(str(mid))
 
 def on_disconnect(client, userdata, rc):
   print "Disconnect RC: " + str(rc)
@@ -119,24 +138,51 @@ def stop_mqtt():
   global cloud
   cloud.loop_stop()
   cloud.disconnect()
-
   sys.exit(0)
 
 def measurements_send():
+  global MQTT_MEASUREMENT_MAP
   my_measurements = []
-  for key, sensor in MQTT_MEASUREMENT_MAP.iteritems():
+  for key, sensor in MQTT_MEASUREMENT_MAP['measurements'].iteritems():
     if sensor.value is not None:
       data = sensor.pub_json()
       my_measurements.append(data)
   topic = 'devices/{0}/measurements'.format(CLOUD_DEV)
   # print json.dumps(my_measurements, indent=4, sort_keys=True)
-  cloud.publish(topic, payload=json.dumps(my_measurements), qos=1, retain=False)
-
+  res, MQTT_MEASUREMENT_MAP['measurement_mid'] = cloud.publish(topic, payload=json.dumps(my_measurements),
+                                                               qos=1, retain=False)
+  if res != 0:
+    print "Failed to publish"
   # Schedule this own function again
   threading.Timer(PERIOD_MEAS / 1000, measurements_send).start()
 
+# replace by an iterator and only send alerts when there is a change in its status
+def check_alarms():
+  global MQTT_ALERTS_MAP
+  alerts_list = []
+  # check first specific sensor alarms
+  for key, sensor in MQTT_MEASUREMENT_MAP['measurements'].iteritems():
+    an_alert = sensor.is_alarm()
+    # if the recorded alert is different than the new alert, publish
+    if an_alert is not None and MQTT_ALERTS_MAP['alerts'][an_alert] != sensor.alerts[an_alert]:
+      MQTT_ALERTS_MAP['alerts'][an_alert] = sensor.alerts[an_alert]
+      print "!!!! {0} @ {1} : {2}{3}".format(an_alert, sensor.name, sensor.value, sensor.unit)
+      alerts_list.append('{"name":{0}, "state":{1}}'.format(an_alert, MQTT_ALERTS_MAP['alerts'][an_alert]))
+  # check other alarms
+  for key, state in my_alerts['alarms'].iteritems():
+    if state != MQTT_ALERTS_MAP['alarms'][key]:
+      MQTT_ALERTS_MAP['alarms'][key] = state
+      print "!!!! {0} : {1}".format(key, state)
+      alerts_list.append('{"name":{0}, "state":{1}}'.format(key, state))
+
+  if alerts_list:
+    topic = 'devices/{0}/alerts'.format(CLOUD_DEV)
+    # print json.dumps(my_measurements, indent=4, sort_keys=True)
+    res, MQTT_ALERTS_MAP["alerts_mid"] = cloud.publish(topic, payload=json.dumps(alerts_list),
+                                         qos=1, retain=False)
+
 def main():
-  global cloud
+  global cloud, my_alerts
   global MQTT_ALERTS_MAP, MQTT_MEASUREMENT_MAP
   cloud = paho.Client(client_id=CLOUD_ID, clean_session=False)
 
@@ -169,7 +215,7 @@ def main():
     # Hard-coded on purpose
     if chip_id != 96:
       print "Unexpected BME280 chip ID, disabling..."
-      set_alert('sensor_failure')
+      my_alerts['alarms']['sensor_failure'] = 'set'
 
     # Run the scheduled routines
     measurements_send()
@@ -186,11 +232,8 @@ def main():
 
       print "Soil {0}% @ {1}°C {2}%RH {3}hPa".format(soil, temp, humd, atmp)
 
-      for key, sensor in MQTT_MEASUREMENT_MAP.iteritems():
-        alarm = sensor.is_alarm()
-        if alarm is not None:
-          print "!!!! {0} @ {1} : {2}{3}".format(alarm, sensor.name, sensor.value, sensor.unit)
-
+      # This will check for alarms to be sent to the cloud
+      check_alarms()
 
       # Wait a bit
       time.sleep(PERIOD_SLEEP / 1000)
