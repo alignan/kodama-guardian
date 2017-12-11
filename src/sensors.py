@@ -44,6 +44,7 @@ print "sampling at {0}s, publish at {1}s".format(str(PERIOD_SLEEP/1000), str(PER
 print "----------------------------------------------------"
 
 cloud = None
+is_mqtt_connected = False
 
 # Create the measurements
 soil_moist  = Sensor('soil_moist', unit="V", minimum=0, maximum=2500,
@@ -87,9 +88,9 @@ MQTT_ALERTS_MAP.update(deepcopy(my_alerts))
 # Add sensor specific alerts
 for key, value in MQTT_MEASUREMENT_MAP['measurements'].iteritems():
   if value.low_thr_msg is not None:
-    MQTT_ALERTS_MAP['alerts'][value.low_thr_msg] = value.alarms[value.low_thr_msg]
+    MQTT_ALERTS_MAP['alerts'][value.low_thr_msg] = value.alerts[value.low_thr_msg]
   if value.hi_thr_msg is not None:
-    MQTT_ALERTS_MAP['alerts'][value.hi_thr_msg]  = value.alarms[value.hi_thr_msg]
+    MQTT_ALERTS_MAP['alerts'][value.hi_thr_msg]  = value.alerts[value.hi_thr_msg]
 
 # Supported configuration values
 MQTT_COMMAND_MAP = {
@@ -108,10 +109,13 @@ for key, value in MQTT_MEASUREMENT_MAP['measurements'].iteritems():
 print "----------------------------------------------------"
 
 def on_connect(client, userdata, flags, rc):
+  global is_mqtt_connected
   if rc == 0:
+    is_mqtt_connected = True
     print "Connected to the local MQTT broker, now subscribing..."
     client.subscribe('devices/{0}/commands'.format(CLOUD_DEV), qos=1)
   else:
+    is_mqtt_connected = False
     print "Connection failed with RC: " + str(rc)
     raise RuntimeError('Connection failed')
 
@@ -130,6 +134,8 @@ def on_publish(client, userdata, mid):
     print "Unexpected {0} published".format(str(mid))
 
 def on_disconnect(client, userdata, rc):
+  global is_mqtt_connected
+  is_mqtt_connected = False
   print "Disconnect RC: " + str(rc)
 
 def on_log(client, userdata, level, buf):
@@ -160,8 +166,12 @@ def measurements_send():
 # replace by an iterator and only send alerts when there is a change in its status
 def check_alerts():
   global MQTT_ALERTS_MAP
+
+  if not is_mqtt_connected:
+    return
+
   alerts_list = []
-  # check first specific sensor alarms
+  # check first specific sensor alerts
   for key, sensor in MQTT_MEASUREMENT_MAP['measurements'].iteritems():
     an_alert = sensor.is_alert()
     # if the recorded alert is different than the new alert, publish
@@ -169,7 +179,7 @@ def check_alerts():
       MQTT_ALERTS_MAP['alerts'][an_alert] = sensor.alerts[an_alert]
       print "!!!! {0} @ {1} : {2}{3}".format(an_alert, sensor.name, sensor.value, sensor.unit)
       alerts_list.append('{"name":{0}, "state":{1}}'.format(an_alert, MQTT_ALERTS_MAP['alerts'][an_alert]))
-  # check other alarms
+  # check other alerts
   for key, state in my_alerts['alerts'].iteritems():
     if state != MQTT_ALERTS_MAP['alerts'][key]:
       MQTT_ALERTS_MAP['alerts'][key] = state
@@ -221,7 +231,7 @@ def main():
     # Run the scheduled routines
     measurements_send()
 
-    # Run the main loop and check for alarms to be published
+    # Run the main loop and check for alerts to be published
     while(True):
 
       soil = soil_hum.read_raw()
@@ -233,7 +243,7 @@ def main():
 
       print "Soil {0}% @ {1}°C {2}%RH {3}hPa".format(soil, temp, humd, atmp)
 
-      # This will check for alarms to be sent to the cloud
+      # This will check for alerts to be sent to the cloud
       check_alerts()
 
       # Wait a bit
