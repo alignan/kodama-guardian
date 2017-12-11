@@ -106,7 +106,7 @@ for key, value in MQTT_ALERTS_MAP['alerts'].iteritems():
 print "\nMeasurements: ",
 for key, value in MQTT_MEASUREMENT_MAP['measurements'].iteritems():
   print value.name + " ",
-print "----------------------------------------------------"
+print "\n----------------------------------------------------"
 
 def on_connect(client, userdata, flags, rc):
   global is_mqtt_connected
@@ -229,17 +229,17 @@ def main():
       my_alerts['alerts']['sensor_failure'] = 'set'
 
     # Run the scheduled routines
-    measurements_send()
+    threading.Timer(PERIOD_MEAS / 1000, measurements_send).start()
 
     # Run the main loop and check for alerts to be published
     while(True):
 
       soil = soil_hum.read_raw()
       temp, atmp, humd = bme280.read_all()
-      MQTT_MEASUREMENT_MAP['temp'].is_valid(temp)
-      MQTT_MEASUREMENT_MAP['humd'].is_valid(humd)
-      MQTT_MEASUREMENT_MAP['atmp'].is_valid(atmp)
-      MQTT_MEASUREMENT_MAP['soil'].is_valid(soil)
+      MQTT_MEASUREMENT_MAP['measurements']['temp'].is_valid(temp)
+      MQTT_MEASUREMENT_MAP['measurements']['humd'].is_valid(humd)
+      MQTT_MEASUREMENT_MAP['measurements']['atmp'].is_valid(atmp)
+      MQTT_MEASUREMENT_MAP['measurements']['soil'].is_valid(soil)
 
       print "Soil {0}% @ {1}°C {2}%RH {3}hPa".format(soil, temp, humd, atmp)
 
