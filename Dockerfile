@@ -24,4 +24,4 @@ WORKDIR /usr/src/app
 ENV INITSYSTEM on
 
 # main.py will run when container starts up on the device
-CMD modprobe i2c-dev && python src/sensors.py
+CMD modprobe i2c-dev && python src/kodama.py
