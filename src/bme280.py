@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #--------------------------------------
-import smbus
+import os
 import time
 from ctypes import c_short
 from ctypes import c_byte
@@ -10,7 +10,12 @@ from ctypes import c_ubyte
 BME280_DEVICE  = 0x77
 
 # I2C bus
-bus = smbus.SMBus(1)
+is_raspberry = 1
+if os.uname()[4][:3] == 'arm':
+  import smbus
+  bus = smbus.SMBus(1)
+else:
+  is_raspberry = 0
 
 #--------------------------------------
 # AUX FUNCTIONS
@@ -60,14 +65,19 @@ class BME280:
     self.OVERSAMPLE_HUM  = 2
 
     # Sampling configuration
-    bus.write_byte_data(self.addr, self.REG_CONTROL_HUM, self.OVERSAMPLE_HUM)
-    control = self.OVERSAMPLE_TEMP << 5 | self.OVERSAMPLE_PRES << 2 | self.MODE
-    bus.write_byte_data(self.addr, self.REG_CONTROL, control)
+    if is_raspberry:
+      bus.write_byte_data(self.addr, self.REG_CONTROL_HUM, self.OVERSAMPLE_HUM)
+      control = self.OVERSAMPLE_TEMP << 5 | self.OVERSAMPLE_PRES << 2 | self.MODE
+      bus.write_byte_data(self.addr, self.REG_CONTROL, control)
 
-    # Calibration table
-    self.cal1 = bus.read_i2c_block_data(self.addr, 0x88, 24)
-    self.cal2 = bus.read_i2c_block_data(self.addr, 0xA1, 1)
-    self.cal3 = bus.read_i2c_block_data(self.addr, 0xE1, 7)
+      # Calibration table
+      self.cal1 = bus.read_i2c_block_data(self.addr, 0x88, 24)
+      self.cal2 = bus.read_i2c_block_data(self.addr, 0xA1, 1)
+      self.cal3 = bus.read_i2c_block_data(self.addr, 0xE1, 7)
+    else:
+      self.cal1 = 1
+      self.cal2 = 1
+      self.cal3 = 1
 
     # Convert byte data to word values
     self.dig_T1 = getUShort(self.cal1, 0)
@@ -107,55 +117,67 @@ class BME280:
     read_temperature()
 
   def read_version(self):
-    (self.chip_id, self.chip_version) = bus.read_i2c_block_data(self.addr, self.REG_ID, 2)
-    return (self.chip_id, self.chip_version)
+    if is_raspberry:
+      (self.chip_id, self.chip_version) = bus.read_i2c_block_data(self.addr, self.REG_ID, 2)
+      return (self.chip_id, self.chip_version)
+    else:
+      return (96, 96)
 
   def read_temperature(self):
     global T_FINE
-    data = bus.read_i2c_block_data(self.addr, self.REG_DATA, 8)
-    temp_raw = (data[3] << 12) | (data[4] << 4) | (data[5] >> 4)  
+    if is_raspberry:
+      data = bus.read_i2c_block_data(self.addr, self.REG_DATA, 8)
+      temp_raw = (data[3] << 12) | (data[4] << 4) | (data[5] >> 4)  
 
-    var1 = ((((temp_raw >> 3) - (self.dig_T1 << 1))) * (self.dig_T2)) >> 11
-    var2 = (((((temp_raw >> 4) - (self.dig_T1)) * ((temp_raw >> 4) - (self.dig_T1))) >> 12) * \
-           (self.dig_T3)) >> 14
-    T_FINE = var1 + var2
-    temperature = float(((T_FINE * 5) + 128) >> 8)
-    return (temperature / 100.0)
+      var1 = ((((temp_raw >> 3) - (self.dig_T1 << 1))) * (self.dig_T2)) >> 11
+      var2 = (((((temp_raw >> 4) - (self.dig_T1)) * ((temp_raw >> 4) - (self.dig_T1))) >> 12) * \
+             (self.dig_T3)) >> 14
+      T_FINE = var1 + var2
+      temperature = float(((T_FINE * 5) + 128) >> 8)
+      return (temperature / 100.0)
+    else:
+      return 25.5
 
   def read_pressure(self):
-    data = bus.read_i2c_block_data(self.addr, self.REG_DATA, 8)
-    pres_raw = (data[0] << 12) | (data[1] << 4) | (data[2] >> 4)
+    if is_raspberry:
+      data = bus.read_i2c_block_data(self.addr, self.REG_DATA, 8)
+      pres_raw = (data[0] << 12) | (data[1] << 4) | (data[2] >> 4)
 
-    var1 = T_FINE / 2.0 - 64000.0
-    var2 = var1 * var1 * self.dig_P6 / 32768.0
-    var2 = var2 + var1 * self.dig_P5 * 2.0
-    var2 = var2 / 4.0 + self.dig_P4 * 65536.0
-    var1 = (self.dig_P3 * var1 * var1 / 524288.0 + self.dig_P2 * var1) / 524288.0
-    var1 = (1.0 + var1 / 32768.0) * self.dig_P1
-    if var1 == 0:
-      pressure = 0
+      var1 = T_FINE / 2.0 - 64000.0
+      var2 = var1 * var1 * self.dig_P6 / 32768.0
+      var2 = var2 + var1 * self.dig_P5 * 2.0
+      var2 = var2 / 4.0 + self.dig_P4 * 65536.0
+      var1 = (self.dig_P3 * var1 * var1 / 524288.0 + self.dig_P2 * var1) / 524288.0
+      var1 = (1.0 + var1 / 32768.0) * self.dig_P1
+      if var1 == 0:
+        pressure = 0
+      else:
+        pressure = 1048576.0 - pres_raw
+        pressure = ((pressure - var2 / 4096.0) * 6250.0) / var1
+        var1 = self.dig_P9 * pressure * pressure / 2147483648.0
+        var2 = pressure * self.dig_P8 / 32768.0
+        pressure = pressure + (var1 + var2 + self.dig_P7) / 16.0
+      return (pressure / 100.0)
     else:
-      pressure = 1048576.0 - pres_raw
-      pressure = ((pressure - var2 / 4096.0) * 6250.0) / var1
-      var1 = self.dig_P9 * pressure * pressure / 2147483648.0
-      var2 = pressure * self.dig_P8 / 32768.0
-      pressure = pressure + (var1 + var2 + self.dig_P7) / 16.0
-    return (pressure / 100.0)
+      return 1000.0
 
   def read_humidity(self):
-    data = bus.read_i2c_block_data(self.addr, self.REG_DATA, 8)
-    hum_raw  = (data[6] << 8)  | data[7]
+    if is_raspberry:
+      data = bus.read_i2c_block_data(self.addr, self.REG_DATA, 8)
+      hum_raw  = (data[6] << 8)  | data[7]
 
-    humidity = T_FINE - 76800.0
-    humidity = (hum_raw - (self.dig_H4 * 64.0 + self.dig_H5 / 16384.0 * humidity)) * \
-               (self.dig_H2 / 65536.0 * (1.0 + self.dig_H6 / 67108864.0 * humidity * \
-               (1.0 + self.dig_H3 / 67108864.0 * humidity)))
-    humidity = humidity * (1.0 - self.dig_H1 * humidity / 524288.0)
-    if humidity > 100:
-      humidity = 100
-    elif humidity < 0:
-      humidity = 0
-    return humidity
+      humidity = T_FINE - 76800.0
+      humidity = (hum_raw - (self.dig_H4 * 64.0 + self.dig_H5 / 16384.0 * humidity)) * \
+                 (self.dig_H2 / 65536.0 * (1.0 + self.dig_H6 / 67108864.0 * humidity * \
+                 (1.0 + self.dig_H3 / 67108864.0 * humidity)))
+      humidity = humidity * (1.0 - self.dig_H1 * humidity / 524288.0)
+      if humidity > 100:
+        humidity = 100
+      elif humidity < 0:
+        humidity = 0
+      return humidity
+    else:
+      return 50
 
   def read_all(self):
     temperature = read_temperature()
