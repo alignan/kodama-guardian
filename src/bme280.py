@@ -40,11 +40,12 @@ def getUChar(data,index):
 #--------------------------------------
 class BME280:
 
-  REG_DATA    = 0xF7
+  REG_DATA  = 0xF7
+  T_FINE    = 0
 
   # Initialize and load calibration table
   def __init__(self, addr=BME280_DEVICE):
-
+    global T_FINE
     self.addr = addr
     self.REG_ID          = 0xD0
     self.REG_CONTROL     = 0xF4
@@ -102,27 +103,30 @@ class BME280:
                      ((2.3 * self.OVERSAMPLE_HUM) + 0.575)
     time.sleep(self.wait_time / 1000)
 
+    # read temperature to load T_FINE
+    read_temperature()
+
   def read_version(self):
     (self.chip_id, self.chip_version) = bus.read_i2c_block_data(self.addr, self.REG_ID, 2)
     return (self.chip_id, self.chip_version)
 
-  def read_all(self):
-
-    # Read temperature/pressure/humidity
+  def read_temperature(self):
+    global T_FINE
     data = bus.read_i2c_block_data(self.addr, self.REG_DATA, 8)
-    pres_raw = (data[0] << 12) | (data[1] << 4) | (data[2] >> 4)
-    temp_raw = (data[3] << 12) | (data[4] << 4) | (data[5] >> 4)
-    hum_raw  = (data[6] << 8)  | data[7]
+    temp_raw = (data[3] << 12) | (data[4] << 4) | (data[5] >> 4)  
 
-    # Refine temperature
     var1 = ((((temp_raw >> 3) - (self.dig_T1 << 1))) * (self.dig_T2)) >> 11
     var2 = (((((temp_raw >> 4) - (self.dig_T1)) * ((temp_raw >> 4) - (self.dig_T1))) >> 12) * \
            (self.dig_T3)) >> 14
-    t_fine = var1 + var2
-    temperature = float(((t_fine * 5) + 128) >> 8)
+    T_FINE = var1 + var2
+    temperature = float(((T_FINE * 5) + 128) >> 8)
+    return (temperature / 100.0)
 
-    # Refine pressure and adjust for temperature
-    var1 = t_fine / 2.0 - 64000.0
+  def read_pressure(self):
+    data = bus.read_i2c_block_data(self.addr, self.REG_DATA, 8)
+    pres_raw = (data[0] << 12) | (data[1] << 4) | (data[2] >> 4)
+
+    var1 = T_FINE / 2.0 - 64000.0
     var2 = var1 * var1 * self.dig_P6 / 32768.0
     var2 = var2 + var1 * self.dig_P5 * 2.0
     var2 = var2 / 4.0 + self.dig_P4 * 65536.0
@@ -136,9 +140,13 @@ class BME280:
       var1 = self.dig_P9 * pressure * pressure / 2147483648.0
       var2 = pressure * self.dig_P8 / 32768.0
       pressure = pressure + (var1 + var2 + self.dig_P7) / 16.0
+    return (pressure / 100.0)
 
-    # Refine humidity
-    humidity = t_fine - 76800.0
+  def read_humidity(self):
+    data = bus.read_i2c_block_data(self.addr, self.REG_DATA, 8)
+    hum_raw  = (data[6] << 8)  | data[7]
+
+    humidity = T_FINE - 76800.0
     humidity = (hum_raw - (self.dig_H4 * 64.0 + self.dig_H5 / 16384.0 * humidity)) * \
                (self.dig_H2 / 65536.0 * (1.0 + self.dig_H6 / 67108864.0 * humidity * \
                (1.0 + self.dig_H3 / 67108864.0 * humidity)))
@@ -147,5 +155,10 @@ class BME280:
       humidity = 100
     elif humidity < 0:
       humidity = 0
+    return humidity
 
-    return (temperature / 100.0, pressure / 100.0, humidity)
+  def read_all(self):
+    temperature = read_temperature()
+    pressure = read_pressure()
+    humidity = read_humidity()
+    return (temperature, pressure, humidity)
