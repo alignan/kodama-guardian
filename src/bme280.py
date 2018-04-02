@@ -75,9 +75,9 @@ class BME280:
       self.cal2 = bus.read_i2c_block_data(self.addr, 0xA1, 1)
       self.cal3 = bus.read_i2c_block_data(self.addr, 0xE1, 7)
     else:
-      self.cal1 = 1
-      self.cal2 = 1
-      self.cal3 = 1
+      self.cal1 = list(range(0, 24))
+      self.cal2 = list(range(0, 1))
+      self.cal3 = list(range(0, 7))
 
     # Convert byte data to word values
     self.dig_T1 = getUShort(self.cal1, 0)
@@ -114,7 +114,7 @@ class BME280:
     time.sleep(self.wait_time / 1000)
 
     # read temperature to load T_FINE
-    read_temperature()
+    self.read_temperature()
 
   def read_version(self):
     if is_raspberry:
