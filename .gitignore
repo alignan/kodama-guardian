@@ -1,3 +1,5 @@
 # Other files and folders not wanted
 .DS_Store
+*.pyc
+*.orig
 *~
