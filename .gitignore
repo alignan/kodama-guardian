@@ -3,3 +3,4 @@
 *.pyc
 *.orig
 *~
+set_credentials.sh
