@@ -30,12 +30,10 @@ CLOUD_DEV     = os.getenv('RELAYR_DEV')
 CLOUD_ID      = os.getenv('RESIN_DEVICE_UUID')
 
 if CLOUD_USER is None or CLOUD_PASS is None or CLOUD_DEV is None:
-  print "No credentials were found"
-  raise
+  raise SystemExit("No credentials were found")
 
 if not os.path.isfile(CLOUD_CERT):
-  print "Cert not found at: " + CLOUD_CERT
-  raise
+  raise SystemExit("Cert not found at: " + CLOUD_CERT)
 
 print "----------------------------------------------------"
 print "Kodama guardian - saving a plant one day at the time"
@@ -143,7 +141,6 @@ def stop_mqtt():
   global cloud
   cloud.loop_stop()
   cloud.disconnect()
-  sys.exit(0)
 
 def measurements_send():
   global MQTT_MEASUREMENT_MAP
@@ -248,9 +245,8 @@ def main():
       time.sleep(PERIOD_SLEEP / 1000)
 
   except Exception, e:
-    print "Failed to connect!: " + str(e)
     stop_mqtt()
-    raise
+    raise SystemExit("Failed to connect!: " + str(e))
 
 if __name__=="__main__":
    main()
