@@ -1,0 +1,42 @@
+soil_moist:
+  unit: V
+  minimum: 0
+  maximum: 2500
+  low_thr: 800
+  hi_thr: 2000
+  low_msg: dry_soil
+  class: SoilMoist
+  source: soil_sensor
+  command: read_raw
+
+temperature:
+  unit: °C
+  minimum: -10.0
+  maximum: 80.0
+  low_thr: 0.0
+  hi_thr: 40.0
+  low_msg: too_cold
+  hi_msg: too_hot
+  class: BME280
+  source: bme280
+  command: read_temperature
+
+humidity:
+  unit: RH
+  minimum: 0.0
+  maximum: 100.0
+  low_thr: 10.0
+  hi_thr: 100.0
+  class: BME280
+  source: bme280
+  command: read_humidity
+
+pressure:
+  unit: hPa
+  minimum: 800.0
+  maximum: 1300.0
+  low_thr: 800.0
+  hi_thr: 1300.0
+  class: BME280
+  source: bme280
+  command: read_pressure
